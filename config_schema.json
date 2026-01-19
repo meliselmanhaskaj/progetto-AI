@@ -1,0 +1,101 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "io": {
+        "type": "object",
+        "properties": {
+            "out_path": {
+                "type": "string"
+            },
+            "choice_model_path": {
+                "type": "string"
+            }
+        },
+        "required": ["choice_model_path"]
+      },
+      "config": {
+        "type": "object",
+        "properties": {
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "num_epochs": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "learning_rate": {
+            "type": "number",
+            "minimum": 0
+          },
+          "reduction_factor": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "reduce_dataset": {
+            "type": "boolean"
+          },
+          "training": {
+            "type": "boolean"
+          },
+          "scheduler": {
+            "type": "object",
+            "properties": {
+              "isActive": {
+                "type": "boolean"
+              },
+              "step_size": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "gamma": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": ["isActive", "step_size", "gamma"]
+          },
+          "early_stopping": {
+            "type": "object",
+            "properties": {
+              "isActive": {
+                "type": "boolean"
+              },
+              "start_epoch": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "loss_evolution_epochs": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "patience": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "improvement_rate": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": ["isActive", "start_epoch", "loss_evolution_epochs", "patience", "improvement_rate"]
+          }
+        },
+        "required": [
+          "batch_size",
+          "num_epochs",
+          "learning_rate",
+          "reduce_dataset",
+          "reduction_factor",
+          "training",
+          "scheduler",
+          "early_stopping"
+        ]
+      }
+    },
+    "required": ["io", "config"]
+  }
+  

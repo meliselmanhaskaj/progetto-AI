@@ -1,7 +1,6 @@
 # Progetto di Intelligenza Artificiale: Classificazione Immagini con ResNet
 
 Studente: Melissa Selmanhaskaj
-
 Ambiente: Conda (anaconda3) – Python  
 Obiettivo: Classificazione di immagini  
 Modello: ResNet

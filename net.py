@@ -6,6 +6,7 @@ La ResNet utilizza blocchi residui per migliorare l'apprendimento e evitare il v
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision.models as models
 
 class ResidualBlock(nn.Module):
     """
@@ -111,3 +112,44 @@ class ResNet(nn.Module):
         # Fully connected layer: produce le probabilità per le 10 classi
         out = self.fc(out)
         return out
+
+class ResNetTransfer(nn.Module):
+    """
+    Transfer Learning ResNet50 pretrained su ImageNet.
+    Utilizza i pesi pretrained e modifica l'ultimo layer per la classificazione SVHN (10 classi).
+    Permette di freezare i pesi dei layer precedenti per un fine-tuning veloce.
+    """
+    
+    def __init__(self, num_classes=10, freeze_backbone=True):
+        """
+        Args:
+            num_classes: numero di classi (10 per SVHN)
+            freeze_backbone: se True, congela i pesi del backbone pretrained
+        """
+        super(ResNetTransfer, self).__init__()
+        
+        # Carica ResNet50 pretrained su ImageNet
+        self.model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+        
+        # Congela i pesi del backbone se richiesto (fine-tuning veloce)
+        if freeze_backbone:
+            for param in self.model.parameters():
+                param.requires_grad = False
+            print("Backbone ResNet50 congelato - Solo il layer finale sarà addestrato")
+        else:
+            print("Backbone ResNet50 scongelato - Tutti i layer saranno addestrati (fine-tuning completo)")
+        
+        # Sostituisci l'ultimo fully connected layer
+        # ResNet50 ha 2048 feature in output prima dell'FC layer
+        num_features = self.model.fc.in_features
+        self.model.fc = nn.Linear(num_features, num_classes)
+        
+        # Sblocca il layer finale per l'addestramento
+        for param in self.model.fc.parameters():
+            param.requires_grad = True
+    
+    def forward(self, x):
+        """
+        Forward pass attraverso la ResNet50.
+        """
+        return self.model(x)

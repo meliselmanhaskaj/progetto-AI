@@ -13,10 +13,26 @@ import jsonschema
 import json
 import sys
 import numpy as np
+import random
 from pathlib import Path
 from types import SimpleNamespace
 from analysis import plot_class_distribution
 from net_runner import NetRunner
+
+def set_seeds(seed):
+    """
+    Imposta i seed per tutte le librerie di randomicità per garantire riproducibilità.
+    Args:
+        seed: valore del seed (es. 42)
+    """
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    # Abilita la riproducibilità di CUDA (può essere più lento)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    print(f"Seeds impostati a {seed} per riproducibilità")
 
 def ifDataExist(directory):
     """
@@ -43,6 +59,9 @@ def main(cfg):
     Funzione principale che configura il training/testing.
     Carica i dati, applica le trasformazioni e avvia NetRunner.
     """
+    
+    # Imposta i seed all'inizio per garantire riproducibilità
+    set_seeds(cfg.config.seed)
     
     # Verifica se il dataset esiste, altrimenti lo scarica
     DOWNLOAD = ifDataExist('./data')
@@ -73,14 +92,14 @@ def main(cfg):
     # Riduce il dataset se configurato (utile per test rapidi)
     if cfg.config.reduce_dataset:
         print(f"Riducendo il dataset al {cfg.config.reduction_factor*100}%...")
-        train_indices, _ = train_test_split(range(len(train_set)), train_size=cfg.config.reduction_factor, stratify=train_set.labels)
-        test_indices, _ = train_test_split(range(len(test_set)), train_size=cfg.config.reduction_factor, stratify=test_set.labels)
+        train_indices, _ = train_test_split(range(len(train_set)), train_size=cfg.config.reduction_factor, stratify=train_set.labels, random_state=cfg.config.seed)
+        test_indices, _ = train_test_split(range(len(test_set)), train_size=cfg.config.reduction_factor, stratify=test_set.labels, random_state=cfg.config.seed)
         
         train_set = Subset(train_set, train_indices)
         test_set = Subset(test_set, test_indices)
 
     # Divide il training set in training (80%) e validazione (20%)
-    train_indices, val_indices = train_test_split(range(len(train_set)), test_size=0.2, stratify=np.array([train_set[i][1] for i in range(len(train_set))])) 
+    train_indices, val_indices = train_test_split(range(len(train_set)), test_size=0.2, stratify=np.array([train_set[i][1] for i in range(len(train_set))]), random_state=cfg.config.seed) 
 
     # Crea i sottoinsiemi per training e validazione
     f_train_set = Subset(train_set, train_indices)

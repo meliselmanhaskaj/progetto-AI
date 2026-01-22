@@ -1,15 +1,19 @@
 {
     "io": {
         "out_path": "./out",
-        "choice_model_path": "./other_models"
+        "choice_model_path": "./other_models",
+        "tensorboard_log_path": "./logs/runs"
     },
     "config": {
         "batch_size": 16,
         "num_epochs": 5,
         "learning_rate": 0.0013,
+        "seed": 42,
         "reduction_factor": 0.1,
         "reduce_dataset": true,
         "training": true,
+        "transfer_learning": false,
+        "freeze_backbone": true,
 
         "scheduler": {
             "isActive": true,

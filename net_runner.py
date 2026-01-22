@@ -9,10 +9,12 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 from pathlib import Path
 import numpy as np
+from torch.utils.tensorboard import SummaryWriter
 
-from net import ResNet
+from net import ResNet, ResNetTransfer
 
 # Imposta semi fissi per la riproducibilità dei risultati
+# Nota: i seed vengono impostati anche in start.py all'inizio per garantire riproducibilità completa
 torch.manual_seed(42)
 np.random.seed(42)
 
@@ -31,8 +33,16 @@ class NetRunner:
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         print(f"Usando dispositivo: {self.device}")
         
-        # Crea la rete ResNet e la sposta sul dispositivo (GPU o CPU)
-        self.model = ResNet(num_classes=10).to(self.device)
+        # Scegli il modello: Transfer Learning o Custom ResNet
+        if cfg.config.transfer_learning:
+            print("\nModalità: TRANSFER LEARNING (ResNet50 pretrained)")
+            self.model = ResNetTransfer(
+                num_classes=10, 
+                freeze_backbone=cfg.config.freeze_backbone
+            ).to(self.device)
+        else:
+            print("\nModalità: CUSTOM ResNet (da zero)")
+            self.model = ResNet(num_classes=10).to(self.device)
         
         # Ottimizzatore Adam: aggiorna i pesi della rete durante il training
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=cfg.config.learning_rate)
@@ -47,6 +57,17 @@ class NetRunner:
                 step_size=cfg.config.scheduler.step_size, 
                 gamma=cfg.config.scheduler.gamma
             )
+        
+        # TensorBoard SummaryWriter per il logging degli esperimenti
+        self.writer = SummaryWriter(log_dir=cfg.io.tensorboard_log_path)
+        print(f"TensorBoard logs salvati in: {cfg.io.tensorboard_log_path}")
+        
+        # Scrivi i parametri dell'esperimento su TensorBoard
+        self.writer.add_text('Config/model_type', 'Transfer Learning (ResNet50)' if cfg.config.transfer_learning else 'Custom ResNet')
+        self.writer.add_text('Config/learning_rate', str(cfg.config.learning_rate))
+        self.writer.add_text('Config/batch_size', str(cfg.config.batch_size))
+        if cfg.config.transfer_learning:
+            self.writer.add_text('Config/freeze_backbone', str(cfg.config.freeze_backbone))
         
         self.cfg = cfg
         
@@ -113,6 +134,10 @@ class NetRunner:
             avg_epoch_loss = running_loss / len(train_loader)
             epoch_loss_values.append(avg_epoch_loss)
             
+            # Log loss su TensorBoard
+            self.writer.add_scalar('Loss/train', avg_epoch_loss, epoch)
+            self.writer.add_scalar('LearningRate', self.optimizer.param_groups[0]['lr'], epoch)
+            
             # Se la perdita è migliorata, salva il modello
             if avg_epoch_loss < best_tr_loss:
                 best_tr_loss = avg_epoch_loss
@@ -123,7 +148,11 @@ class NetRunner:
             # Early stopping: valida periodicamente
             if early_stop_check and (epoch + 1) % es_loss_evolution_epochs == 0:
                 print('Validating...')
-                val_loss = self.test(val_loader, use_current_model=True, validation=True)
+                val_loss, val_accuracy = self.test(val_loader, use_current_model=True, validation=True)
+                
+                # Log validation loss e accuracy su TensorBoard
+                self.writer.add_scalar('Loss/validation', val_loss, epoch)
+                self.writer.add_scalar('Accuracy/validation', val_accuracy, epoch)
                 
                 # Controlla il miglioramento della validazione
                 if val_loss < best_va_loss:
@@ -145,6 +174,10 @@ class NetRunner:
                 print(f"Early stopping all'epoca {epoch + 1}")
                 break
 
+        
+        # Chiudi il writer di TensorBoard
+        self.writer.close()
+        print('TensorBoard logs chiusi. Esegui: tensorboard --logdir=./logs/runs')
         # Salva il modello addestrato finale
         torch.save(self.model.state_dict(), './out/model_final_sd.pth')  # Solo i parametri
         torch.save(self.model, './out/model_final.pth')                  # Intero modello
@@ -243,7 +276,7 @@ class NetRunner:
         # Stampa i risultati
         if validation:
             print(f'Validation set: Average loss: {average_loss:.4f}, Accuracy: {correct}/{total} ({accuracy:.2f}%)')
-            return average_loss
+            return average_loss, accuracy
         else:
             print(f'Test set: Average loss: {average_loss:.4f}, Accuracy: {correct}/{total} ({accuracy:.2f}%)')
 

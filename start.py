@@ -60,8 +60,13 @@ def main(cfg):
     Carica i dati, applica le trasformazioni e avvia NetRunner.
     """
     
-    # Imposta i seed all'inizio per garantire riproducibilità
+    # Imposta i seed IMMEDIATAMENTE all'inizio per garantire riproducibilità
+    # Questo deve essere la PRIMA operazione per evitare qualsiasi fonte di randomicità
     set_seeds(cfg.config.seed)
+    
+    # Crea un generator con seed per i DataLoader (garantisce riproducibilità dello shuffle)
+    generator = torch.Generator()
+    generator.manual_seed(cfg.config.seed)
     
     # Verifica se il dataset esiste, altrimenti lo scarica
     DOWNLOAD = ifDataExist('./data')
@@ -107,7 +112,8 @@ def main(cfg):
     
     # Crea i DataLoader per il caricamento efficiente dei dati in batch
     # shuffle=True per il training: mescola i dati ad ogni epoca per evitare overfitting
-    train_loader = DataLoader(f_train_set, batch_size=cfg.config.batch_size, shuffle=True)
+    # generator con seed garantisce riproducibilità completa dello shuffle
+    train_loader = DataLoader(f_train_set, batch_size=cfg.config.batch_size, shuffle=True, generator=generator)
     val_loader = DataLoader(val_set, batch_size=cfg.config.batch_size, shuffle=False)
     test_loader = DataLoader(test_set, batch_size=cfg.config.batch_size, shuffle=False)
 

@@ -13,10 +13,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 from net import ResNet, ResNetTransfer
 
-# Imposta semi fissi per la riproducibilità dei risultati
-# Nota: i seed vengono impostati anche in start.py all'inizio per garantire riproducibilità completa
-torch.manual_seed(42)
-np.random.seed(42)
+# NOTA: I seed vengono impostati in start.py all'inizio della funzione main()
+# per garantire riproducibilità completa. Non impostare seed qui per evitare conflitti.
 
 class NetRunner:
     """

@@ -113,9 +113,10 @@ def main(cfg):
     # Crea i DataLoader per il caricamento efficiente dei dati in batch
     # shuffle=True per il training: mescola i dati ad ogni epoca per evitare overfitting
     # generator con seed garantisce riproducibilità completa dello shuffle
-    train_loader = DataLoader(f_train_set, batch_size=cfg.config.batch_size, shuffle=True, generator=generator)
-    val_loader = DataLoader(val_set, batch_size=cfg.config.batch_size, shuffle=False)
-    test_loader = DataLoader(test_set, batch_size=cfg.config.batch_size, shuffle=False)
+    # drop_last=True evita errori con BatchNorm quando l'ultimo batch ha solo 1 elemento
+    train_loader = DataLoader(f_train_set, batch_size=cfg.config.batch_size, shuffle=True, generator=generator, drop_last=True)
+    val_loader = DataLoader(val_set, batch_size=cfg.config.batch_size, shuffle=False, drop_last=False)
+    test_loader = DataLoader(test_set, batch_size=cfg.config.batch_size, shuffle=False, drop_last=False)
 
     # Crea l'oggetto NetRunner che gestisce training e testing
     netrunner = NetRunner(cfg)

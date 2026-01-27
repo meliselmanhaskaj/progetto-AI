@@ -2,7 +2,7 @@
     "io": {
         "out_path": "./out",
         "choice_model_path": "./other_models",
-        "tensorboard_log_path": "./logs/runs"
+        "tensorboard_log_path": "./logs/runs/run3"
     },
     "config": {
         "batch_size": 16,
